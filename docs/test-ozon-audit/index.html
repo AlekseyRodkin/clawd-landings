@@ -305,21 +305,25 @@
   setText("variantLabel", `v=${variant}`);
 
   const bulletsEl = $("bullets");
-  bulletsEl.innerHTML = "";
-  for (const b of t.bullets) {
-    const li = document.createElement("li");
-    li.className = "flex gap-2 items-start";
-    li.innerHTML = `<span class="mt-1 inline-block w-2 h-2 rounded-full bg-slate-900"></span><span class="text-slate-700">${b}</span>`;
-    bulletsEl.appendChild(li);
+  if (bulletsEl) {
+    bulletsEl.innerHTML = "";
+    for (const b of t.bullets) {
+      const li = document.createElement("li");
+      li.className = "flex gap-2 items-start";
+      li.innerHTML = `<span class="mt-1 inline-block w-2 h-2 rounded-full bg-slate-900"></span><span class="text-slate-700">${b}</span>`;
+      bulletsEl.appendChild(li);
+    }
   }
 
   const proofEl = $("proof");
-  proofEl.innerHTML = "";
-  for (const p of (t.proof || [])) {
-    const s = document.createElement("span");
-    s.className = "text-xs px-2 py-1 rounded-full bg-slate-200 text-slate-700";
-    s.textContent = p;
-    proofEl.appendChild(s);
+  if (proofEl) {
+    proofEl.innerHTML = "";
+    for (const p of (t.proof || [])) {
+      const s = document.createElement("span");
+      s.className = "text-xs px-2 py-1 rounded-full bg-slate-200 text-slate-700";
+      s.textContent = p;
+      proofEl.appendChild(s);
+    }
   }
 
   setText("year", String(new Date().getFullYear()));
@@ -339,44 +343,54 @@
     } catch {}
   })();
 
-  $("leadForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const email = String(fd.get("email") || "").trim();
-    const telegram = String(fd.get("telegram") || "").trim();
+  const leadForm = $("leadForm");
+  if (leadForm) {
+    leadForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const email = String(fd.get("email") || "").trim();
+      const telegram = String(fd.get("telegram") || "").trim();
 
-    const hasEmail = email.includes("@") && email.includes(".");
-    const hasTelegram = telegram.startsWith("@") && telegram.length > 2;
+      const hasEmail = email.includes("@") && email.includes(".");
+      const hasTelegram = telegram.startsWith("@") && telegram.length > 2;
 
-    if (!hasEmail && !hasTelegram) {
-      showStatus("warn", t.statusValidate);
-      return;
-    }
+      if (!hasEmail && !hasTelegram) {
+        showStatus("warn", t.statusValidate);
+        return;
+      }
 
-    const fd2 = new FormData(e.target);
-    const payload = {
-      idea_slug: CONFIG.IDEA_ID,
-      variant: variant,
-      lang: lang,
-      name: String(fd2.get("name") || "").trim() || null,
-      email: hasEmail ? email : null,
-      phone: String(fd2.get("phone") || "").trim() || null,
-      telegram: hasTelegram ? telegram : (String(fd2.get("telegram") || "").trim() || null),
-      landing_path: CONFIG.LANDING_PATH || window.location.pathname,
-      referrer: document.referrer || null,
-      user_agent: navigator.userAgent || null,
-    };
+      const payload = {
+        idea_slug: CONFIG.IDEA_ID,
+        variant: variant,
+        lang: lang,
+        name: String(fd.get("name") || "").trim() || null,
+        email: hasEmail ? email : null,
+        phone: String(fd.get("phone") || "").trim() || null,
+        telegram: hasTelegram ? telegram : (String(fd.get("telegram") || "").trim() || null),
+        landing_path: CONFIG.LANDING_PATH || window.location.pathname,
+        referrer: document.referrer || null,
+        user_agent: navigator.userAgent || null,
+      };
 
-    try {
-      const { error } = await supabase.from("pipeline_leads").insert(payload);
-      if (error) throw error;
-      showStatus("ok", t.statusOk);
-      e.target.reset();
-    } catch (err) {
-      console.error(err);
-      showStatus("err", t.statusErr);
-    }
-  });
+      try {
+        const { error } = await supabase.from("pipeline_leads").insert(payload);
+        if (error) throw error;
+        // Hide form and show success message
+        e.target.style.display = "none";
+        const successDiv = document.createElement("div");
+        successDiv.className = "text-center py-8";
+        successDiv.innerHTML = `
+          <div class="text-4xl mb-4">✅</div>
+          <div class="text-xl font-semibold text-emerald-700 mb-2">${t.statusOk}</div>
+          <div class="text-slate-600">Мы свяжемся с вами в ближайшее время</div>
+        `;
+        e.target.parentNode.appendChild(successDiv);
+      } catch (err) {
+        console.error("Supabase error:", err);
+        showStatus("err", t.statusErr);
+      }
+    });
+  }
 </script>
 </body>
 </html>
