@@ -116,7 +116,7 @@
   const CONFIG = {
     IDEA_ID: "test-ozon-audit",
     LANDING_PATH: "/clawd-landings/test-ozon-audit/",
-    SUPABASE_URL: "http://127.0.0.1:54321",
+    SUPABASE_URL: "https://api.rodkin.tech",
     SUPABASE_ANON_KEY: "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH",
   };
 
@@ -317,9 +317,8 @@
 
   $("year").textContent = String(new Date().getFullYear());
 
-  // Supabase disabled for GitHub Pages (localhost won't work)
-  // Enable when hosting with public Supabase URL
-  const supabase = null;
+  // Supabase enabled via Cloudflare tunnel
+  const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
   $("leadForm").addEventListener("submit", async (e) => {
     e.preventDefault();
