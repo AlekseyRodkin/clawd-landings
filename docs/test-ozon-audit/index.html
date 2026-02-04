@@ -264,6 +264,7 @@
 
   function showStatus(kind, text) {
     const box = $("statusBox");
+    if (!box) return;
     box.classList.remove("hidden");
     box.textContent = text;
     box.className = "mt-2 text-sm rounded-xl border px-3 py-2 " + (
@@ -277,25 +278,31 @@
   const variant = detectVariant();
   const t = COPY[lang][variant];
 
-  $("badge").textContent = t.badge;
-  $("headline").textContent = t.headline;
-  $("subheadline").textContent = t.subheadline;
-  $("formTitle").textContent = t.formTitle;
-  $("formSubtitle").textContent = t.formSubtitle;
-  $("ctaButton").textContent = t.cta;
-  $("privacyNote").textContent = t.privacy;
-  $("faqTitle").textContent = t.faqTitle;
-  $("faq1q").textContent = t.faq1q;
-  $("faq1a").textContent = t.faq1a;
-  $("faq2q").textContent = t.faq2q;
-  $("faq2a").textContent = t.faq2a;
+  // Safe text setter (prevents null errors)
+  function setText(id, val) {
+    const el = $(id);
+    if (el) el.textContent = val;
+  }
 
-  $("nameLabel").textContent = t.labels.name;
-  $("telegramLabel").textContent = t.labels.telegram;
-  $("emailLabel").textContent = t.labels.email;
-  $("phoneLabel").textContent = t.labels.phone;
+  setText("badge", t.badge);
+  setText("headline", t.headline);
+  setText("subheadline", t.subheadline);
+  setText("formTitle", t.formTitle);
+  setText("formSubtitle", t.formSubtitle);
+  setText("ctaButton", t.cta);
+  setText("privacyNote", t.privacy);
+  setText("faqTitle", t.faqTitle);
+  setText("faq1q", t.faq1q);
+  setText("faq1a", t.faq1a);
+  setText("faq2q", t.faq2q);
+  setText("faq2a", t.faq2a);
 
-  $("variantLabel").textContent = `v=${variant}`;
+  setText("nameLabel", t.labels.name);
+  setText("telegramLabel", t.labels.telegram);
+  setText("emailLabel", t.labels.email);
+  setText("phoneLabel", t.labels.phone);
+
+  setText("variantLabel", `v=${variant}`);
 
   const bulletsEl = $("bullets");
   bulletsEl.innerHTML = "";
@@ -315,7 +322,7 @@
     proofEl.appendChild(s);
   }
 
-  $("year").textContent = String(new Date().getFullYear());
+  setText("year", String(new Date().getFullYear()));
 
   // Supabase enabled via Cloudflare tunnel
   const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
