@@ -359,17 +359,20 @@
         return;
       }
 
+      const tgVal = hasTelegram ? telegram : (String(fd.get("telegram") || "").trim() || null);
       const payload = {
         idea_slug: CONFIG.IDEA_ID,
-        variant: variant,
-        lang: lang,
         name: String(fd.get("name") || "").trim() || null,
         email: hasEmail ? email : null,
-        phone: String(fd.get("phone") || "").trim() || null,
-        telegram: hasTelegram ? telegram : (String(fd.get("telegram") || "").trim() || null),
-        landing_path: CONFIG.LANDING_PATH || window.location.pathname,
-        referrer: document.referrer || null,
+        phone: String(fd.get("phone") || "").trim() || tgVal,  // telegram в phone если нет телефона
         user_agent: navigator.userAgent || null,
+        meta: {
+          variant: variant,
+          lang: lang,
+          telegram: tgVal,
+          landing_path: CONFIG.LANDING_PATH || window.location.pathname,
+          referrer: document.referrer || null,
+        }
       };
 
       try {
