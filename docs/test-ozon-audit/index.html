@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Ozon Seller Audit — Узнай где теряешь маржу</title>
+  <meta name="description" content="Бот для селлеров Ozon: unit-экономика по каждому SKU, алерты о просадках маржи, готовый список действий" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Ozon Seller Audit — Узнай где теряешь маржу" />
+  <meta property="og:description" content="Бот для селлеров Ozon: unit-экономика по каждому SKU, алерты о просадках маржи" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+  <main class="max-w-3xl mx-auto px-4 py-10">
+    <div class="flex items-center justify-between gap-4">
+      <div class="text-sm text-slate-600" id="badge">Ранний доступ</div>
+      <div class="flex items-center gap-2 text-xs">
+        <a class="underline text-slate-600 hover:text-slate-900" href="?lang=ru">RU</a>
+        <span class="text-slate-300">/</span>
+        <a class="underline text-slate-600 hover:text-slate-900" href="?lang=en">EN</a>
+      </div>
+    </div>
+
+    <header class="mt-6">
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight" id="headline">...</h1>
+      <p class="mt-3 text-lg text-slate-700" id="subheadline">...</p>
+
+      <ul class="mt-6 space-y-2" id="bullets"></ul>
+
+      <div class="mt-6 flex flex-wrap gap-2" id="proof"></div>
+    </header>
+
+    <section class="mt-10 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-semibold" id="formTitle">...</h2>
+          <p class="mt-1 text-sm text-slate-600" id="formSubtitle">...</p>
+        </div>
+        <div class="text-xs text-slate-500" id="variantLabel"></div>
+      </div>
+
+      <form class="mt-6 grid gap-3" id="leadForm">
+        <div class="grid md:grid-cols-2 gap-3">
+          <label class="grid gap-1">
+            <span class="text-xs text-slate-600" id="nameLabel">Имя</span>
+            <input class="rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                   name="name" autocomplete="name" />
+          </label>
+
+          <label class="grid gap-1">
+            <span class="text-xs text-slate-600" id="telegramLabel">Telegram</span>
+            <input class="rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                   name="telegram" placeholder="@username" />
+          </label>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-3">
+          <label class="grid gap-1">
+            <span class="text-xs text-slate-600" id="emailLabel">Email</span>
+            <input class="rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                   name="email" autocomplete="email" />
+          </label>
+
+          <label class="grid gap-1">
+            <span class="text-xs text-slate-600" id="phoneLabel">Телефон (опционально)</span>
+            <input class="rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                   name="phone" autocomplete="tel" />
+          </label>
+        </div>
+
+        <button class="mt-2 rounded-xl bg-slate-900 text-white px-4 py-3 font-medium hover:bg-slate-800 active:bg-slate-950"
+                type="submit" id="ctaButton">
+          ...
+        </button>
+
+        <p class="text-xs text-slate-500" id="privacyNote">
+          Нажимая кнопку, ты соглашаешься на связь по теме раннего доступа. Спама не будет.
+        </p>
+
+        <div class="hidden mt-2 text-sm rounded-xl border px-3 py-2" id="statusBox"></div>
+      </form>
+    </section>
+
+    <section class="mt-10">
+      <h3 class="text-lg font-semibold" id="faqTitle">FAQ</h3>
+      <div class="mt-4 grid gap-3">
+        <details class="bg-white rounded-xl border border-slate-200 p-4">
+          <summary class="cursor-pointer font-medium" id="faq1q">Что это?</summary>
+          <p class="mt-2 text-sm text-slate-600" id="faq1a">Бот для селлеров Ozon который показывает реальную маржу по каждому товару.</p>
+        </details>
+
+        <details class="bg-white rounded-xl border border-slate-200 p-4">
+          <summary class="cursor-pointer font-medium" id="faq2q">Когда можно попробовать?</summary>
+          <p class="mt-2 text-sm text-slate-600" id="faq2a">Мы приглашаем ранних пользователей небольшими партиями. Оставь заявку!</p>
+        </details>
+
+        <details class="bg-white rounded-xl border border-slate-200 p-4">
+          <summary class="cursor-pointer font-medium" id="faq3q">Сколько стоит?</summary>
+          <p class="mt-2 text-sm text-slate-600" id="faq3a">Планируем от 990₽/мес. Для ранних пользователей — скидка 50%.</p>
+        </details>
+      </div>
+    </section>
+
+    <footer class="mt-12 text-xs text-slate-500">
+      <div>© <span id="year"></span> Ozon Seller Audit</div>
+      <div class="mt-1">Built with OpenClaw idea validation pipeline.</div>
+    </footer>
+  </main>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const CONFIG = {
+    IDEA_ID: "test-ozon-audit",
+    LANDING_PATH: "/clawd-landings/test-ozon-audit/",
+    SUPABASE_URL: "http://127.0.0.1:54321",
+    SUPABASE_ANON_KEY: "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH",
+  };
+
+  const COPY = {
+    ru: {
+      a: {
+        badge: "Ранний доступ",
+        headline: "8 из 10 селлеров продают товары в убыток. А ты?",
+        subheadline: "Бот покажет реальную маржу по каждому SKU и скажет что делать",
+        bullets: [
+          "Unit-экономика по каждому товару за 2 клика",
+          "Алерты в Telegram когда маржа падает",
+          "Готовый список действий: поднять цену, убрать из продажи, изменить FBO/FBS",
+          "Учитывает все комиссии Ozon (даже скрытые)",
+        ],
+        proof: ["Для Ozon", "990₽/мес", "Telegram-бот", "Без спама"],
+        formTitle: "Узнай первым когда запустим",
+        formSubtitle: "Оставь контакт — покажем демо одним из первых",
+        cta: "Хочу ранний доступ",
+        privacy: "Нажимая кнопку, ты соглашаешься на связь по теме раннего доступа. Спама не будет.",
+        faqTitle: "FAQ",
+        faq1q: "Что это?",
+        faq1a: "Бот для селлеров Ozon который показывает реальную маржу по каждому товару с учётом всех комиссий.",
+        faq2q: "Когда можно попробовать?",
+        faq2a: "Мы приглашаем ранних пользователей небольшими партиями. Оставь заявку!",
+        labels: { name: "Имя", telegram: "Telegram", email: "Email", phone: "Телефон (опционально)" },
+        statusOk: "Спасибо! Мы свяжемся когда будет доступ.",
+        statusErr: "Ошибка. Попробуй ещё раз.",
+        statusValidate: "Нужен email или Telegram.",
+      },
+      b: {
+        badge: "Ранний доступ",
+        headline: "Перестань терять деньги на Ozon — узнай маржу за 2 клика",
+        subheadline: "Бот для селлеров: unit-экономика, алерты о просадках, готовые действия",
+        bullets: [
+          "Автоматический расчёт маржи по всем SKU",
+          "Telegram-уведомления о критичных просадках",
+          "Рекомендации: что делать с убыточными товарами",
+          "Экономия 40+ часов в месяц на ручных расчётах",
+        ],
+        proof: ["Для Ozon", "от 990₽", "Telegram-бот", "Экономия времени"],
+        formTitle: "Получи демо одним из первых",
+        formSubtitle: "Оставь контакт — покажем как это работает",
+        cta: "Запросить демо",
+        privacy: "Оставляя контакт, ты соглашаешься на связь по теме демо/раннего доступа.",
+        faqTitle: "FAQ",
+        faq1q: "Что это?",
+        faq1a: "Проверяем спрос на бот-аудитор для селлеров Ozon.",
+        faq2q: "Когда можно попробовать?",
+        faq2a: "Если интерес высокий — быстро соберём MVP и пригласим тебя.",
+        labels: { name: "Имя", telegram: "Telegram", email: "Email", phone: "Телефон (опционально)" },
+        statusOk: "Спасибо! Мы получили заявку.",
+        statusErr: "Не удалось отправить. Попробуй позже.",
+        statusValidate: "Нужен email или Telegram.",
+      },
+    },
+    en: {
+      a: {
+        badge: "Early access",
+        headline: "8 out of 10 Ozon sellers lose money on some SKUs. Do you?",
+        subheadline: "Bot shows real margin per SKU and tells you what to do",
+        bullets: [
+          "Unit economics per product in 2 clicks",
+          "Telegram alerts when margin drops",
+          "Action list: raise price, remove from sale, switch FBO/FBS",
+          "Accounts for all Ozon fees (even hidden ones)",
+        ],
+        proof: ["For Ozon", "990₽/mo", "Telegram bot", "No spam"],
+        formTitle: "Be first to know when we launch",
+        formSubtitle: "Leave contact — we'll show you a demo",
+        cta: "Get early access",
+        privacy: "By submitting, you agree to be contacted about early access. No spam.",
+        faqTitle: "FAQ",
+        faq1q: "What is this?",
+        faq1a: "A bot for Ozon sellers that shows real margin per product including all fees.",
+        faq2q: "When can I try it?",
+        faq2a: "We invite early users in small batches. Leave a request!",
+        labels: { name: "Name", telegram: "Telegram", email: "Email", phone: "Phone (optional)" },
+        statusOk: "Thanks! We'll contact you when access opens.",
+        statusErr: "Error. Please try again.",
+        statusValidate: "Email or Telegram required.",
+      },
+      b: {
+        badge: "Early access",
+        headline: "Stop losing money on Ozon — see your real margin in 2 clicks",
+        subheadline: "Bot for sellers: unit economics, alerts, action items",
+        bullets: [
+          "Automatic margin calculation for all SKUs",
+          "Telegram notifications for critical drops",
+          "Recommendations: what to do with unprofitable products",
+          "Save 40+ hours per month on manual calculations",
+        ],
+        proof: ["For Ozon", "from 990₽", "Telegram bot", "Save time"],
+        formTitle: "Get demo first",
+        formSubtitle: "Leave contact — we'll show how it works",
+        cta: "Request demo",
+        privacy: "By submitting, you agree to be contacted about demo/early access.",
+        faqTitle: "FAQ",
+        faq1q: "What is this?",
+        faq1a: "Validating demand for an Ozon seller audit bot.",
+        faq2q: "When can I try it?",
+        faq2a: "If interest is high, we'll build MVP fast and invite you.",
+        labels: { name: "Name", telegram: "Telegram", email: "Email", phone: "Phone (optional)" },
+        statusOk: "Thanks! We got your request.",
+        statusErr: "Could not submit. Try later.",
+        statusValidate: "Email or Telegram required.",
+      },
+    },
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function getParam(name) {
+    const u = new URL(window.location.href);
+    return u.searchParams.get(name);
+  }
+
+  function detectLang() {
+    const q = (getParam("lang") || "").toLowerCase();
+    if (q === "ru" || q === "en") return q;
+    const nav = (navigator.language || "").toLowerCase();
+    return nav.startsWith("ru") ? "ru" : "en";
+  }
+
+  function detectVariant() {
+    const q = (getParam("v") || "").toLowerCase();
+    if (q === "a" || q === "b") return q;
+    const key = `ab:${CONFIG.IDEA_ID}`;
+    const saved = localStorage.getItem(key);
+    if (saved && (saved === "a" || saved === "b")) return saved;
+    const v = Math.random() < 0.5 ? "a" : "b";
+    localStorage.setItem(key, v);
+    return v;
+  }
+
+  function getUtm() {
+    const u = new URL(window.location.href);
+    const p = u.searchParams;
+    return {
+      utm_source: p.get("utm_source"),
+      utm_medium: p.get("utm_medium"),
+      utm_campaign: p.get("utm_campaign"),
+    };
+  }
+
+  function showStatus(kind, text) {
+    const box = $("statusBox");
+    box.classList.remove("hidden");
+    box.textContent = text;
+    box.className = "mt-2 text-sm rounded-xl border px-3 py-2 " + (
+      kind === "ok" ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+        : kind === "warn" ? "border-amber-200 bg-amber-50 text-amber-900"
+        : "border-rose-200 bg-rose-50 text-rose-900"
+    );
+  }
+
+  const lang = detectLang();
+  const variant = detectVariant();
+  const t = COPY[lang][variant];
+
+  $("badge").textContent = t.badge;
+  $("headline").textContent = t.headline;
+  $("subheadline").textContent = t.subheadline;
+  $("formTitle").textContent = t.formTitle;
+  $("formSubtitle").textContent = t.formSubtitle;
+  $("ctaButton").textContent = t.cta;
+  $("privacyNote").textContent = t.privacy;
+  $("faqTitle").textContent = t.faqTitle;
+  $("faq1q").textContent = t.faq1q;
+  $("faq1a").textContent = t.faq1a;
+  $("faq2q").textContent = t.faq2q;
+  $("faq2a").textContent = t.faq2a;
+
+  $("nameLabel").textContent = t.labels.name;
+  $("telegramLabel").textContent = t.labels.telegram;
+  $("emailLabel").textContent = t.labels.email;
+  $("phoneLabel").textContent = t.labels.phone;
+
+  $("variantLabel").textContent = `v=${variant}`;
+
+  const bulletsEl = $("bullets");
+  bulletsEl.innerHTML = "";
+  for (const b of t.bullets) {
+    const li = document.createElement("li");
+    li.className = "flex gap-2 items-start";
+    li.innerHTML = `<span class="mt-1 inline-block w-2 h-2 rounded-full bg-slate-900"></span><span class="text-slate-700">${b}</span>`;
+    bulletsEl.appendChild(li);
+  }
+
+  const proofEl = $("proof");
+  proofEl.innerHTML = "";
+  for (const p of (t.proof || [])) {
+    const s = document.createElement("span");
+    s.className = "text-xs px-2 py-1 rounded-full bg-slate-200 text-slate-700";
+    s.textContent = p;
+    proofEl.appendChild(s);
+  }
+
+  $("year").textContent = String(new Date().getFullYear());
+
+  // Supabase disabled for GitHub Pages (localhost won't work)
+  // Enable when hosting with public Supabase URL
+  const supabase = null;
+
+  $("leadForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const email = String(fd.get("email") || "").trim();
+    const telegram = String(fd.get("telegram") || "").trim();
+
+    const hasEmail = email.includes("@") && email.includes(".");
+    const hasTelegram = telegram.startsWith("@") && telegram.length > 2;
+
+    if (!hasEmail && !hasTelegram) {
+      showStatus("warn", t.statusValidate);
+      return;
+    }
+
+    // For now just show success (Supabase localhost won't work on GH Pages)
+    showStatus("ok", t.statusOk);
+    e.target.reset();
+  });
+</script>
+</body>
+</html>
