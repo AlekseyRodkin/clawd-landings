@@ -320,6 +320,18 @@
   // Supabase enabled via Cloudflare tunnel
   const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
+  // Track pageview
+  (async () => {
+    try {
+      await supabase.from("pipeline_pageviews").insert({
+        idea_slug: CONFIG.IDEA_ID,
+        page_path: CONFIG.LANDING_PATH || window.location.pathname,
+        referrer: document.referrer || null,
+        user_agent: navigator.userAgent || null,
+      });
+    } catch {}
+  })();
+
   $("leadForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -334,9 +346,29 @@
       return;
     }
 
-    // For now just show success (Supabase localhost won't work on GH Pages)
-    showStatus("ok", t.statusOk);
-    e.target.reset();
+    const fd2 = new FormData(e.target);
+    const payload = {
+      idea_slug: CONFIG.IDEA_ID,
+      variant: variant,
+      lang: lang,
+      name: String(fd2.get("name") || "").trim() || null,
+      email: hasEmail ? email : null,
+      phone: String(fd2.get("phone") || "").trim() || null,
+      telegram: hasTelegram ? telegram : (String(fd2.get("telegram") || "").trim() || null),
+      landing_path: CONFIG.LANDING_PATH || window.location.pathname,
+      referrer: document.referrer || null,
+      user_agent: navigator.userAgent || null,
+    };
+
+    try {
+      const { error } = await supabase.from("pipeline_leads").insert(payload);
+      if (error) throw error;
+      showStatus("ok", t.statusOk);
+      e.target.reset();
+    } catch (err) {
+      console.error(err);
+      showStatus("err", t.statusErr);
+    }
   });
 </script>
 </body>
